@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BITSAT Tracker 2026</title>
+<meta name="theme-color" content="#0d0d0f"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+:root{
+  --bg:#0d0d0f;--bg2:#111114;--bg3:#17171b;--bg4:#1c1c21;
+  --glass:rgba(255,255,255,.04);--glass-h:rgba(255,255,255,.07);
+  --border:rgba(255,255,255,.08);--border-h:rgba(255,255,255,.14);
+  --text:#f0f0f2;--text2:#8e8e96;--text3:#4a4a54;
+  --accent:#7c6af7;--accent-bg:rgba(124,106,247,.12);--accent-b:rgba(124,106,247,.25);
+  --green:#4caf80;--gold:#e8a838;
+  --r:16px;--rs:10px;
+  --ease:cubic-bezier(.4,0,.2,1);
+}
+body{font-family:'Manrope',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden;line-height:1.6}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--text3);border-radius:99px}
+
+/* NAVBAR */
+#navbar{position:sticky;top:0;z-index:100;background:rgba(13,13,15,.9);border-bottom:1px solid var(--border);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.nav-inner{max-width:1080px;margin:0 auto;padding:0 20px;height:58px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.nav-logo{font-size:17px;font-weight:800;letter-spacing:-.5px;flex-shrink:0}
+.nav-logo span{color:var(--accent)}
+.nav-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#sync-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:99px;font-size:11px;font-weight:700;background:var(--bg3);border:1px solid var(--border);color:var(--text2);transition:all .3s var(--ease);flex-shrink:0}
+#sync-pill.online{color:var(--green);border-color:rgba(76,175,128,.3);background:rgba(76,175,128,.08)}
+#sync-pill.syncing{color:var(--gold);border-color:rgba(232,168,56,.3);background:rgba(232,168,56,.08)}
+#sync-pill.offline{color:#e05c5c;border-color:rgba(224,92,92,.3);background:rgba(224,92,92,.08)}
+.sdot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+#sync-pill.online .sdot{animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 15px;border-radius:99px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .2s var(--ease);white-space:nowrap}
+.btn-ghost{background:var(--glass);border:1px solid var(--border);color:var(--text2)}
+.btn-ghost:hover{background:var(--glass-h);color:var(--text);border-color:var(--border-h)}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-accent:hover{opacity:.85}
+.btn-danger{background:#c94040;color:#fff}
+.btn-danger:hover{opacity:.85}
+.btn-sm{padding:6px 12px;font-size:12px}
+
+/* HERO */
+#hero{text-align:center;padding:60px 20px 36px}
+.eyebrow{display:inline-flex;align-items:center;gap:7px;padding:5px 14px;border-radius:99px;background:var(--accent-bg);border:1px solid var(--accent-b);font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.06em;text-transform:uppercase;margin-bottom:20px;animation:fadeUp .5s var(--ease) both}
+.hero-title{font-size:clamp(40px,7vw,70px);font-weight:800;letter-spacing:-2.5px;line-height:1.06;margin-bottom:12px;animation:fadeUp .5s .06s var(--ease) both}
+.hero-sub{font-size:clamp(14px,2vw,16px);color:var(--text2);max-width:420px;margin:0 auto 44px;animation:fadeUp .5s .1s var(--ease) both}
+
+/* COUNTDOWN */
+#countdown{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;animation:fadeUp .5s .14s var(--ease) both}
+.cd-card{background:var(--glass);border:1px solid var(--border);border-radius:var(--r);padding:18px 22px;min-width:88px;text-align:center;backdrop-filter:blur(12px)}
+.cd-num{font-size:clamp(26px,5vw,44px);font-weight:800;letter-spacing:-2px;display:block;line-height:1;transition:transform .18s var(--ease)}
+.cd-num.tick{transform:scale(1.1)}
+.cd-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.14em;margin-top:5px;display:block;font-weight:700}
+
+/* QUOTE */
+#quote-wrap{display:flex;justify-content:center;padding:28px 20px}
+.quote-card{max-width:680px;width:100%;background:var(--glass);border:1px solid var(--border);border-radius:var(--r);padding:30px 32px;text-align:center;backdrop-filter:blur(16px);animation:fadeUp .5s .18s var(--ease) both;position:relative;overflow:hidden}
+.quote-card::before{content:'"';position:absolute;top:-16px;left:16px;font-size:130px;color:var(--accent);opacity:.05;font-family:Georgia,serif;line-height:1;pointer-events:none}
+.q-text{font-size:clamp(13px,2vw,15px);font-weight:500;line-height:1.8;font-style:italic;margin-bottom:14px}
+.q-auth{font-size:11px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.qfade{animation:qFade .4s var(--ease)}
+@keyframes qFade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+/* STATS */
+#stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;padding:0 20px 28px;max-width:1080px;margin:0 auto;animation:fadeUp .5s .2s var(--ease) both}
+.stat-card{background:var(--glass);border:1px solid var(--border);border-radius:var(--r);padding:20px 22px;backdrop-filter:blur(16px);transition:all .22s var(--ease)}
+.stat-card:hover{background:var(--glass-h);border-color:var(--border-h);transform:translateY(-2px)}
+.stat-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:7px}
+.stat-val{font-size:30px;font-weight:800;letter-spacing:-1.5px;line-height:1}
+.stat-sub{font-size:11px;color:var(--text2);margin-top:3px}
+.streak-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:99px;background:rgba(232,168,56,.1);border:1px solid rgba(232,168,56,.2);font-size:11px;font-weight:700;color:var(--gold)}
+
+/* PROGRESS BARS */
+.pbar{background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden}
+.pbar.lg{height:7px;margin-bottom:18px}
+.pbar.sm{height:4px;margin-top:8px}
+.pfill{height:100%;border-radius:99px;transition:width .7s var(--ease)}
+
+/* OVERALL */
+#overall-wrap{max-width:1080px;margin:0 auto;padding:0 20px 28px;animation:fadeUp .5s .22s var(--ease) both}
+.card{background:var(--glass);border:1px solid var(--border);border-radius:var(--r);padding:26px;backdrop-filter:blur(16px)}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-ttl{font-size:14px;font-weight:700;letter-spacing:-.2px}
+.pct-badge{font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-bg);padding:4px 12px;border-radius:99px}
+.mini-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px}
+.mini-card{background:var(--bg3);border-radius:var(--rs);padding:14px;transition:background .2s var(--ease)}
+.mini-card:hover{background:var(--bg4)}
+.mini-name{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:6px}
+.mini-pct{font-size:20px;font-weight:800;letter-spacing:-1px}
+
+/* GOALS */
+#goals-wrap{max-width:1080px;margin:0 auto;padding:0 20px 28px;animation:fadeUp .5s .24s var(--ease) both}
+.goals-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+.goal-row{display:flex;gap:8px;margin-bottom:14px}
+.goal-inp{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px 14px;font-family:inherit;font-size:13px;color:var(--text);outline:none;transition:all .2s var(--ease)}
+.goal-inp:focus{border-color:var(--accent);background:rgba(124,106,247,.06)}
+.goal-inp::placeholder{color:var(--text3)}
+.goal-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--rs);background:var(--bg3);margin-bottom:7px;transition:background .2s var(--ease);animation:slideIn .2s var(--ease)}
+.goal-item:hover{background:var(--bg4)}
+.goal-item.done .gtxt{text-decoration:line-through;color:var(--text3)}
+.gtxt{flex:1;font-size:13px;cursor:pointer;word-break:break-word}
+.gdel{color:var(--text3);cursor:pointer;font-size:14px;flex-shrink:0;transition:color .2s;padding:2px 4px}
+.gdel:hover{color:#e05c5c}
+
+/* CHECKBOX */
+.chk{width:22px;height:22px;border-radius:7px;border:1.5px solid var(--border-h);background:var(--bg3);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s var(--ease)}
+.chk:hover{border-color:var(--accent);background:var(--accent-bg)}
+.chk.on{background:var(--accent);border-color:var(--accent)}
+.chk.on::after{content:'';width:5px;height:9px;border:2px solid #fff;border-top:none;border-left:none;transform:rotate(45deg) translateY(-1px);display:block}
+
+/* SEARCH / FILTER */
+#sf-wrap{max-width:1080px;margin:0 auto;padding:0 20px 22px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;animation:fadeUp .5s .26s var(--ease) both}
+.s-inp{flex:1;min-width:190px;background:var(--glass);border:1px solid var(--border);border-radius:var(--rs);padding:10px 15px;font-family:inherit;font-size:13px;color:var(--text);outline:none;transition:all .2s var(--ease);backdrop-filter:blur(12px)}
+.s-inp::placeholder{color:var(--text3)}
+.s-inp:focus{border-color:var(--accent)}
+.f-row{display:flex;gap:6px;flex-wrap:wrap}
+.fbtn{padding:8px 13px;border-radius:99px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:var(--glass);color:var(--text2);transition:all .2s var(--ease)}
+.fbtn:hover{background:var(--glass-h);color:var(--text)}
+.fbtn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* SUBJECT CARDS */
+#subj-wrap{max-width:1080px;margin:0 auto;padding:0 20px 64px}
+.subj-card{background:var(--glass);border:1px solid var(--border);border-radius:var(--r);margin-bottom:12px;backdrop-filter:blur(16px);overflow:hidden;transition:border-color .2s var(--ease);animation:fadeUp .5s var(--ease) both}
+.subj-card:hover{border-color:var(--border-h)}
+.subj-hdr{display:flex;align-items:center;gap:14px;padding:20px 22px;cursor:pointer;user-select:none;transition:background .2s var(--ease)}
+.subj-hdr:hover{background:rgba(255,255,255,.02)}
+.subj-icon{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;background:var(--bg3)}
+.subj-info{flex:1;min-width:0}
+.subj-name{font-size:15px;font-weight:700;letter-spacing:-.3px}
+.subj-meta{font-size:11px;color:var(--text2);margin-top:1px}
+.subj-right{display:flex;align-items:center;gap:14px;flex-shrink:0}
+.subj-pct{font-size:20px;font-weight:800;letter-spacing:-1px}
+.chev{width:26px;height:26px;border-radius:8px;background:var(--bg3);display:flex;align-items:center;justify-content:center;color:var(--text2);transition:transform .3s var(--ease),background .2s;flex-shrink:0}
+.subj-card.open .chev{transform:rotate(180deg);background:var(--accent-bg);color:var(--accent)}
+.subj-pbar{height:2px;background:rgba(255,255,255,.05)}
+.subj-pfill{height:100%;transition:width .6s var(--ease)}
+.chap-panel{max-height:0;overflow:hidden;transition:max-height .4s var(--ease)}
+.subj-card.open .chap-panel{max-height:99999px}
+.chap-inner{padding:0 14px 14px}
+
+/* TABLE HEADER (desktop) */
+.tbl-hdr{display:grid;grid-template-columns:1fr 100px 100px 100px 1fr;gap:6px;padding:9px 14px;background:var(--bg3);border-radius:var(--rs);margin-bottom:4px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--text3)}
+.tbl-hdr span{text-align:center}
+.tbl-hdr span:first-child,.tbl-hdr span:last-child{text-align:left}
+
+/* CHAPTER ROW (desktop) */
+.chap-row{display:grid;grid-template-columns:1fr 100px 100px 100px 1fr;gap:6px;align-items:center;padding:10px 14px;border-radius:var(--rs);transition:background .18s var(--ease)}
+.chap-row:hover{background:rgba(255,255,255,.03)}
+.chap-row.hidden{display:none!important}
+.chap-name{font-size:13px;font-weight:500}
+.chk-cell{display:flex;justify-content:center}
+.note-ta{width:100%;background:var(--bg3);border:1px solid transparent;border-radius:7px;padding:6px 9px;font-family:inherit;font-size:12px;color:var(--text);resize:none;min-height:30px;outline:none;transition:all .2s var(--ease);line-height:1.5}
+.note-ta:focus{border-color:var(--border-h);background:rgba(255,255,255,.05)}
+.note-ta::placeholder{color:var(--text3)}
+
+/* MOBILE chapter layout */
+@media(max-width:700px){
+  .tbl-hdr{display:none}
+  .chap-row{display:block;background:var(--bg3);border-radius:var(--rs);margin-bottom:8px;padding:13px}
+  .chap-row:hover{background:var(--bg4)}
+  .chap-name{font-size:13px;font-weight:600;margin-bottom:10px}
+  .chk-cell{display:none}
+  .mob-chks{display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap}
+  .mob-ci{display:flex;align-items:center;gap:7px}
+  .mob-ci-lbl{font-size:11px;color:var(--text2);font-weight:600}
+}
+@media(min-width:701px){
+  .mob-chks{display:none}
+}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;z-index:999;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:11px 18px;font-size:12px;font-weight:600;color:var(--green);box-shadow:0 4px 24px rgba(0,0,0,.5);opacity:0;transform:translateY(8px);transition:all .28s var(--ease);pointer-events:none}
+#toast.show{opacity:1;transform:none}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);animation:fadeIn .18s var(--ease)}
+.modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:30px;max-width:420px;width:90%;animation:scaleIn .2s var(--ease)}
+.modal-ttl{font-size:17px;font-weight:800;margin-bottom:7px}
+.modal-msg{font-size:13px;color:var(--text2);margin-bottom:22px;line-height:1.6}
+.modal-acts{display:flex;gap:8px;justify-content:flex-end}
+
+/* FOOTER */
+footer{text-align:center;padding:36px 20px;font-size:11px;color:var(--text3);border-top:1px solid var(--border)}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.93)}to{opacity:1;transform:none}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
+
+/* RESPONSIVE */
+@media(max-width:480px){
+  #hero{padding:40px 14px 28px}
+  .cd-card{padding:14px 16px;min-width:70px}
+  .card,.quote-card{padding:18px}
+  .chap-inner{padding:0 8px 8px}
+  .nav-inner{padding:0 14px}
+  .nav-right .btn-ghost:not(#sync-pill){display:none}
+}
+@media(max-width:360px){
+  .nav-right{gap:4px}
+}
+</style>
+</head>
+<body>
+
+<nav id="navbar">
+  <div class="nav-inner">
+    <div class="nav-logo">BITSAT<span>.</span></div>
+    <div class="nav-right">
+      <div id="sync-pill" class="offline"><div class="sdot"></div><span id="sync-txt">Offline</span></div>
+      <button class="btn btn-ghost btn-sm" onclick="exportData()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('imp-file').click()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Import
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="confirmReset()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3"/></svg>
+        Reset
+      </button>
+      <input type="file" id="imp-file" accept=".json" style="display:none" onchange="importData(event)"/>
+    </div>
+  </div>
+</nav>
+
+<section id="hero">
+  <div class="eyebrow">
+    <svg width="7" height="7" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="currentColor"/></svg>
+    BITSAT 2026 · Session 2
+  </div>
+  <h1 class="hero-title">BITSAT Tracker</h1>
+  <p class="hero-sub">Your focused preparation companion. Every chapter. Every day.</p>
+  <div id="countdown">
+    <div class="cd-card"><span class="cd-num" id="cd-d">--</span><span class="cd-label">Days</span></div>
+    <div class="cd-card"><span class="cd-num" id="cd-h">--</span><span class="cd-label">Hours</span></div>
+    <div class="cd-card"><span class="cd-num" id="cd-m">--</span><span class="cd-label">Mins</span></div>
+    <div class="cd-card"><span class="cd-num" id="cd-s">--</span><span class="cd-label">Secs</span></div>
+  </div>
+</section>
+
+<div id="quote-wrap">
+  <div class="quote-card">
+    <p class="q-text" id="q-text"></p>
+    <span class="q-auth" id="q-auth"></span>
+  </div>
+</div>
+
+<div id="stats-row">
+  <div class="stat-card"><div class="stat-lbl">Overall Progress</div><div class="stat-val" id="s-ov">0%</div><div class="stat-sub">All subjects</div></div>
+  <div class="stat-card"><div class="stat-lbl">Chapters Done</div><div class="stat-val" id="s-ch">0/0</div><div class="stat-sub">Fully completed</div></div>
+  <div class="stat-card"><div class="stat-lbl">Study Streak</div><div class="stat-val" id="s-st">—</div><div class="stat-sub">Consecutive days</div></div>
+  <div class="stat-card"><div class="stat-lbl">Today's Goals</div><div class="stat-val" id="s-gl">0/0</div><div class="stat-sub">Completed</div></div>
+</div>
+
+<div id="overall-wrap">
+  <div class="card">
+    <div class="card-hdr"><span class="card-ttl">Overall Completion</span><span class="pct-badge" id="ov-badge">0%</span></div>
+    <div class="pbar lg"><div class="pfill" id="ov-fill" style="width:0%;background:var(--accent)"></div></div>
+    <div class="mini-grid">
+      <div class="mini-card"><div class="mini-name">⚡ Physics</div><div class="mini-pct" id="mp-physics">0%</div><div class="pbar sm"><div class="pfill" id="mf-physics" style="width:0%;background:#7c6af7"></div></div></div>
+      <div class="mini-card"><div class="mini-name">⚗️ Chemistry</div><div class="mini-pct" id="mp-chemistry">0%</div><div class="pbar sm"><div class="pfill" id="mf-chemistry" style="width:0%;background:#5ba4cf"></div></div></div>
+      <div class="mini-card"><div class="mini-name">∑ Mathematics</div><div class="mini-pct" id="mp-mathematics">0%</div><div class="pbar sm"><div class="pfill" id="mf-mathematics" style="width:0%;background:#e8a838"></div></div></div>
+      <div class="mini-card"><div class="mini-name">✍️ English</div><div class="mini-pct" id="mp-english">0%</div><div class="pbar sm"><div class="pfill" id="mf-english" style="width:0%;background:#6bbf8e"></div></div></div>
+      <div class="mini-card"><div class="mini-name">🧩 Reasoning</div><div class="mini-pct" id="mp-reasoning">0%</div><div class="pbar sm"><div class="pfill" id="mf-reasoning" style="width:0%;background:#cf6679"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="goals-wrap">
+  <div class="card">
+    <div class="goals-hdr"><span class="card-ttl">Today's Goals</span><button class="btn btn-ghost btn-sm" onclick="clearGoals()">Clear All</button></div>
+    <div class="goal-row">
+      <input type="text" class="goal-inp" id="g-inp" placeholder="Add a goal… press Enter" maxlength="120" onkeydown="if(event.key==='Enter')addGoal()"/>
+      <button class="btn btn-accent btn-sm" onclick="addGoal()">Add</button>
+    </div>
+    <div id="goals-list"></div>
+  </div>
+</div>
+
+<div id="sf-wrap">
+  <input type="text" class="s-inp" id="s-inp" placeholder="Search chapters or topics…" oninput="onSearch(this.value)"/>
+  <div class="f-row">
+    <button class="fbtn active" data-f="all"      onclick="setFilter(this)">All</button>
+    <button class="fbtn"        data-f="done"     onclick="setFilter(this)">✓ Done</button>
+    <button class="fbtn"        data-f="progress" onclick="setFilter(this)">⏳ In Progress</button>
+    <button class="fbtn"        data-f="none"     onclick="setFilter(this)">○ Not Started</button>
+  </div>
+</div>
+
+<div id="subj-wrap"></div>
+
+<footer>BITSAT Tracker 2026 · Synced with Firebase · Every chapter. Every day.</footer>
+<div id="toast"></div>
+
+<script>
+"use strict";
+
+/* ── FIREBASE CONFIG ──────────────────────────────────────────
+   1. Go to console.firebase.google.com
+   2. Create project → Add Web App → copy config → paste below
+   3. Enable Firestore (Build → Firestore Database → Create)
+   4. Set Firestore rules (see README) 
+   All your devices use the same SYNC_KEY = same data.
+─────────────────────────────────────────────────────────────── */
+const FB_CONFIG = {
+  apiKey:            "AIzaSyAtzmyzyaARUQphH9O0kqdptVia2TTYooc",
+  authDomain:        "bitsat-tracker-d72ef.firebaseapp.com",
+  projectId:         "bitsat-tracker-d72ef",
+  storageBucket:     "bitsat-tracker-d72ef.firebasestorage.app",
+  messagingSenderId: "662596891110",
+  appId:             "1:662596891110:web:4ca26c00cd479bee5ba627"
+};
+const SYNC_KEY = "bitsat-main"; // change to any secret string
+
+/* ── EXAM DATE ─────────────────────────────────────────────── */
+const EXAM = new Date("2026-05-24T09:00:00");
+
+/* ── SUBJECTS + CHAPTERS ────────────────────────────────────── */
+const SUBJ = {
+  physics:{name:"Physics",icon:"⚡",color:"#7c6af7",ch:["Rotational Motion","Thermodynamics","Electrostatics","Current Electricity","Waves","Magnetic Effects of Current","Ray Optics","Simple Harmonic Motion","Electromagnetic Induction","Newton's Laws of Motion","Fluid Mechanics","Work Power Energy","Modern Physics","Alternating Current","Kinematics","Capacitance","Center of Mass","Wave Optics","Gravitation","Thermal Properties of Matter","Semiconductors","Kinetic Theory of Gases","Mechanical Properties of Solids","Nuclear Physics","Electromagnetic Waves","Units and Dimensions"]},
+  chemistry:{name:"Chemistry",icon:"⚗️",color:"#5ba4cf",ch:["Chemical Bonding","Basic Organic Chemistry","Thermodynamics","p Block Elements","Aldehydes, Ketones and Carboxylic Acids","Equilibrium","Coordination Compounds","Hydrocarbons","Electrochemistry","Chemical Kinetics","Alcohols, Phenols and Ethers","Haloalkanes and Haloarenes","Mole Concept","d and f Block Elements","Amines","Atomic Structure","Solutions","States of Matter","Redox Reactions","Biomolecules","Periodic Properties","Solid State","Surface Chemistry","s Block Elements","Hydrogen","Metallurgy","Polymers","Chemistry in Everyday Life","Environmental Chemistry"]},
+  mathematics:{name:"Mathematics",icon:"∑",color:"#e8a838",ch:["Functions","Continuity and Differentiability","Application of Derivatives","Definite Integration","Indefinite Integration","Differential Equations","Probability","Permutations and Combination","Complex Numbers","Sequences and Series","3D Geometry","Vectors","Trigonometric Ratios & Identities","Circle","Straight Lines","Limits","Matrices","Determinants","Quadratic Equations","Conic Sections (Parabola, Ellipse, Hyperbola combined)","Area Under the Curve","Trigonometric Equations","Inverse Trigonometric Functions","Binomial Theorem","Sets and Relations","Statistics","Linear Programming","Mathematical Reasoning","Basics of Mathematics"]},
+  english:{name:"English",icon:"✍️",color:"#6bbf8e",ch:["Grammar","Vocabulary","Sentence Completion","Reading Comprehension","Synonyms","Antonyms","Error Detection","Para Jumbles","Idioms and Phrases","One Word Substitution","Sentence Improvement","Verbal Reasoning","Sentence Correction","Fill in the Blanks"]},
+  reasoning:{name:"Logical Reasoning",icon:"🧩",color:"#cf6679",ch:["Verbal Reasoning","Non-Verbal Reasoning","Series","Coding Decoding","Analogies","Directions","Blood Relations","Clocks","Calendars","Puzzles","Data Interpretation","Cubes and Dice","Figure Counting","Embedded Figures","Logical Deduction","Statement and Conclusion","Statement and Assumption","Pattern Recognition"]}
+};
+
+/* ── QUOTES ─────────────────────────────────────────────────── */
+const Q=[
+  {t:"You have the right to perform your actions, but you are not entitled to the fruits of your actions.",a:"Bhagavad Gita 2.47"},
+  {t:"Let right deeds be thy motive, not the fruit which comes from them.",a:"Bhagavad Gita 2.47"},
+  {t:"The mind acts like an enemy for those who do not control it.",a:"Bhagavad Gita 6.6"},
+  {t:"For those who have conquered the mind, it is their best friend. For those who have failed, it remains their greatest enemy.",a:"Bhagavad Gita 6.6"},
+  {t:"When meditation is mastered, the mind is unwavering like the flame of a lamp in a windless place.",a:"Bhagavad Gita 6.19"},
+  {t:"A person who is not disturbed by the incessant flow of desires can alone achieve peace.",a:"Bhagavad Gita 2.70"},
+  {t:"On this path effort never goes to waste. Even a little effort will protect you from the greatest fear.",a:"Bhagavad Gita 2.40"},
+  {t:"Perform all thy actions with mind concentrated on the Divine, renouncing attachment, looking upon success and failure with an equal eye.",a:"Bhagavad Gita 2.48"},
+  {t:"Set your heart upon your work, but never its reward.",a:"Bhagavad Gita 2.47"},
+  {t:"A person can rise through the efforts of his own mind, or draw himself down in the same manner.",a:"Bhagavad Gita 6.5"},
+  {t:"Reshape yourself through the power of your will; never let yourself be degraded by the will of others.",a:"Bhagavad Gita 6.5"},
+  {t:"He who has faith has wisdom; who lives in self-harmony enters swiftly into the Eternal.",a:"Bhagavad Gita 4.39"},
+  {t:"Fear not what is not real. What is real always was and cannot be destroyed.",a:"Bhagavad Gita 2.16"},
+  {t:"Change is the law of the universe.",a:"Bhagavad Gita"},
+  {t:"Whatever happened, happened for the good. Whatever is happening, is happening for the good.",a:"Bhagavad Gita"},
+  {t:"Those who eat too much or sleep too much will not succeed in meditation.",a:"Bhagavad Gita 6.16"},
+  {t:"The happiness that at first seems like poison but at last is like nectar — this arises from serenity of one's own mind.",a:"Bhagavad Gita 18.37"},
+  {t:"One who sees inaction in action, and action in inaction, is intelligent among men.",a:"Bhagavad Gita 4.18"},
+  {t:"Lust, anger and greed are the three doors to self-destructive hell.",a:"Bhagavad Gita 16.21"},
+  {t:"It is better to live your own destiny imperfectly than to live an imitation of somebody else's life with perfection.",a:"Bhagavad Gita 3.35"},
+  {t:"Even if you were the most sinful of all sinners, you could cross the ocean of sin by the boat of knowledge.",a:"Bhagavad Gita 4.36"},
+  {t:"Anger leads to clouding of judgment, bewilderment of memory, and destruction of reason.",a:"Bhagavad Gita 2.63"},
+  {t:"Do not let the fruits of action be your motive, but do not attach yourself to non-action either.",a:"Bhagavad Gita"},
+  {t:"The soul is neither born, nor does it ever die; it is unborn, eternal, ever-existing.",a:"Bhagavad Gita 2.20"},
+  {t:"One who is not disturbed in mind amidst miseries, and not elated when there is happiness, free from attachment, fear and anger — is a sage of steady mind.",a:"Bhagavad Gita 2.56"},
+  {t:"You have power over your mind, not outside events. Realize this, and you will find strength.",a:"Marcus Aurelius"},
+  {t:"The obstacle is the way.",a:"Marcus Aurelius"},
+  {t:"Waste no more time arguing about what a good man should be. Be one.",a:"Marcus Aurelius"},
+  {t:"Confine yourself to the present.",a:"Marcus Aurelius"},
+  {t:"The first rule is to keep an untroubled spirit. The second is to look things in the face and know them for what they are.",a:"Marcus Aurelius"},
+  {t:"We suffer more in imagination than in reality.",a:"Seneca"},
+  {t:"Luck is what happens when preparation meets opportunity.",a:"Seneca"},
+  {t:"Begin at once to live, and count each separate day as a separate life.",a:"Seneca"},
+  {t:"No man was ever wise by chance.",a:"Seneca"},
+  {t:"He is a wise man who does not grieve for things he has not, but rejoices for those he has.",a:"Epictetus"},
+  {t:"First say to yourself what you would be; and then do what you have to do.",a:"Epictetus"},
+  {t:"Make the best use of what is in your power, and take the rest as it happens.",a:"Epictetus"},
+  {t:"Man is not worried by real problems so much as by his imagined anxieties about real problems.",a:"Epictetus"},
+  {t:"Success is the sum of small efforts, repeated day in and day out.",a:"Robert Collier"},
+  {t:"The secret of getting ahead is getting started.",a:"Mark Twain"},
+  {t:"Discipline is the bridge between goals and accomplishment.",a:"Jim Rohn"},
+  {t:"We are what we repeatedly do. Excellence is not an act, but a habit.",a:"Aristotle"},
+  {t:"Hard work beats talent when talent doesn't work hard.",a:"Tim Notke"},
+  {t:"Don't watch the clock; do what it does. Keep going.",a:"Sam Levenson"},
+  {t:"You don't have to be great to start, but you have to start to be great.",a:"Zig Ziglar"},
+  {t:"The future depends on what you do today.",a:"Mahatma Gandhi"},
+  {t:"Live as if you were to die tomorrow. Learn as if you were to live forever.",a:"Mahatma Gandhi"},
+  {t:"Energy and persistence conquer all things.",a:"Benjamin Franklin"},
+  {t:"An investment in knowledge always pays the best interest.",a:"Benjamin Franklin"},
+  {t:"Genius is one percent inspiration, ninety-nine percent perspiration.",a:"Thomas Edison"},
+  {t:"The only way to do great work is to love what you do.",a:"Steve Jobs"},
+  {t:"Your time is limited, so don't waste it living someone else's life.",a:"Steve Jobs"},
+  {t:"Little by little, one travels far.",a:"J.R.R. Tolkien"},
+  {t:"The man who moves a mountain begins by carrying away small stones.",a:"Confucius"},
+  {t:"A journey of a thousand miles begins with a single step.",a:"Lao Tzu"},
+  {t:"It does not matter how slowly you go as long as you do not stop.",a:"Confucius"},
+  {t:"Our greatest glory is not in never falling, but in rising every time we fall.",a:"Confucius"},
+  {t:"It always seems impossible until it is done.",a:"Nelson Mandela"},
+  {t:"Believe you can and you're halfway there.",a:"Theodore Roosevelt"},
+  {t:"Education is the passport to the future. Tomorrow belongs to those who prepare for it today.",a:"Malcolm X"},
+  {t:"The capacity to learn is a gift; the ability to learn is a skill; the willingness to learn is a choice.",a:"Brian Herbert"},
+  {t:"The expert in anything was once a beginner.",a:"Helen Hayes"},
+  {t:"The pain of studying is far less than the pain of regret.",a:"Anonymous"},
+  {t:"Every question you solve today is one less problem on exam day.",a:"Anonymous"},
+  {t:"One day, all this hard work will make perfect sense.",a:"Anonymous"},
+  {t:"Your future self is watching you right now through your memories.",a:"Anonymous"},
+  {t:"Revision is the mother of learning.",a:"Anonymous"},
+  {t:"You will never always be motivated. You have to learn to be disciplined.",a:"Anonymous"},
+  {t:"Motivation gets you started. Habit keeps you going.",a:"Jim Ryun"},
+  {t:"Small daily improvements over time lead to stunning results.",a:"Robin Sharma"},
+  {t:"I am not a product of my circumstances. I am a product of my decisions.",a:"Stephen Covey"},
+  {t:"Success is not final, failure is not fatal — it is the courage to continue that counts.",a:"Winston Churchill"},
+  {t:"Don't wish it were easier. Wish you were better.",a:"Jim Rohn"},
+  {t:"There are no shortcuts to any place worth going.",a:"Beverly Sills"},
+  {t:"Push yourself because no one else is going to do it for you.",a:"Anonymous"},
+  {t:"Don't stop when you're tired. Stop when you're done.",a:"Anonymous"},
+  {t:"Wake up with determination. Go to bed with satisfaction.",a:"Anonymous"}
+];
+
+/* ── STATE ──────────────────────────────────────────────────── */
+let S = { progress:{}, goals:[], streak:0, lastActive:null, _ts:"" };
+let filter="all", searchQ="", saveT=null, db=null;
+
+/* ── BOOT ───────────────────────────────────────────────────── */
+document.addEventListener("DOMContentLoaded",()=>{
+  loadLocal();
+  updateStreak();
+  showQuote();
+  startClock();
+  renderAll();
+  buildSubjCards();
+  initFB();
+});
+
+/* ── FIREBASE ───────────────────────────────────────────────── */
+function initFB(){
+  if(FB_CONFIG.apiKey==="YOUR_API_KEY"){
+    syncUI("offline","Add Firebase config to sync");
+    return;
+  }
+  try{
+    firebase.initializeApp(FB_CONFIG);
+    db = firebase.firestore();
+    syncUI("syncing","Connecting…");
+    pullFB();
+    db.collection("bitsat").doc(SYNC_KEY).onSnapshot(snap=>{
+      if(!snap.exists) return;
+      const r=snap.data();
+      if(!S._ts || r._ts > S._ts){
+        S.progress=r.progress||{};
+        S.goals=r.goals||[];
+        S.streak=r.streak??S.streak;
+        S.lastActive=r.lastActive||S.lastActive;
+        S._ts=r._ts||"";
+        saveLocal(); renderAll(); refreshCards();
+      }
+      syncUI("online","Synced");
+    },err=>{ console.warn(err); syncUI("offline","Sync error"); });
+  }catch(e){ console.warn(e); syncUI("offline","Firebase error"); }
+}
+
+async function pullFB(){
+  try{
+    const snap=await db.collection("bitsat").doc(SYNC_KEY).get();
+    if(snap.exists){
+      const r=snap.data();
+      S.progress=r.progress||{};
+      S.goals=r.goals||[];
+      S.streak=r.streak??0;
+      S.lastActive=r.lastActive||null;
+      S._ts=r._ts||"";
+      saveLocal(); renderAll(); refreshCards();
+    }else{ pushFB(); }
+  }catch(e){ console.warn("pull:",e); }
+}
+
+async function pushFB(){
+  if(!db) return;
+  try{
+    const ts=new Date().toISOString();
+    S._ts=ts;
+    await db.collection("bitsat").doc(SYNC_KEY).set({
+      progress:S.progress, goals:S.goals,
+      streak:S.streak, lastActive:S.lastActive, _ts:ts
+    });
+    syncUI("online","Synced");
+  }catch(e){ console.warn("push:",e); syncUI("offline","Saved locally"); }
+}
+
+function syncUI(cls,msg){
+  const p=document.getElementById("sync-pill");
+  const t=document.getElementById("sync-txt");
+  if(p) p.className=cls;
+  if(t) t.textContent=msg;
+}
+
+/* ── LOCAL STORAGE ──────────────────────────────────────────── */
+function saveLocal(){ try{localStorage.setItem("bts26",JSON.stringify(S));}catch(e){} }
+function loadLocal(){ try{const r=localStorage.getItem("bts26");if(r)Object.assign(S,JSON.parse(r));}catch(e){} }
+
+/* ── SAVE SCHEDULER ─────────────────────────────────────────── */
+function scheduleSave(){
+  saveLocal();
+  clearTimeout(saveT);
+  saveT=setTimeout(()=>{ pushFB(); showToast("✓ Saved"); },900);
+}
+
+/* ── TOAST ──────────────────────────────────────────────────── */
+function showToast(m){
+  const el=document.getElementById("toast");
+  el.textContent=m; el.classList.add("show");
+  setTimeout(()=>el.classList.remove("show"),2200);
+}
+
+/* ── STREAK ─────────────────────────────────────────────────── */
+function updateStreak(){
+  const today=new Date().toDateString();
+  if(!S.lastActive){ S.lastActive=today; S.streak=1; }
+  else if(S.lastActive!==today){
+    const d=Math.round((new Date(today)-new Date(S.lastActive))/86400000);
+    S.streak=d===1?(S.streak||0)+1:1;
+    S.lastActive=today;
+  }
+  saveLocal();
+}
+
+/* ── COUNTDOWN ──────────────────────────────────────────────── */
+const _pv={};
+function setN(id,v){
+  const s=String(v).padStart(2,"0"),el=document.getElementById(id);
+  if(!el||_pv[id]===s) return;
+  el.textContent=s; el.classList.add("tick");
+  setTimeout(()=>el.classList.remove("tick"),180);
+  _pv[id]=s;
+}
+function startClock(){
+  function tick(){
+    const d=EXAM-Date.now();
+    if(d<=0){ document.getElementById("countdown").innerHTML='<div class="cd-card"><span class="cd-num">🎉</span><span class="cd-label">Exam Day!</span></div>'; return; }
+    setN("cd-d",Math.floor(d/86400000));
+    setN("cd-h",Math.floor((d%86400000)/3600000));
+    setN("cd-m",Math.floor((d%3600000)/60000));
+    setN("cd-s",Math.floor((d%60000)/1000));
+  }
+  tick(); setInterval(tick,1000);
+}
+
+/* ── QUOTE ──────────────────────────────────────────────────── */
+function showQuote(){
+  const q=Q[Math.floor(Math.random()*Q.length)];
+  const t=document.getElementById("q-text"),a=document.getElementById("q-auth");
+  if(t){t.textContent=q.t;t.className="q-text qfade";}
+  if(a) a.textContent="— "+q.a;
+}
+
+/* ── PROGRESS CALCS ─────────────────────────────────────────── */
+function sPct(k){
+  const ch=SUBJ[k].ch,p=S.progress[k]||{};
+  let d=0;
+  ch.forEach((_,i)=>{ const r=p[i]||{}; if(r.t)d++; if(r.p)d++; if(r.f)d++; });
+  return ch.length?Math.round(d/(ch.length*3)*100):0;
+}
+function totPct(){
+  let tot=0,d=0;
+  Object.keys(SUBJ).forEach(k=>{
+    const ch=SUBJ[k].ch; tot+=ch.length*3;
+    const p=S.progress[k]||{};
+    ch.forEach((_,i)=>{ const r=p[i]||{}; if(r.t)d++; if(r.p)d++; if(r.f)d++; });
+  });
+  return tot?Math.round(d/tot*100):0;
+}
+function cStatus(k,i){
+  const r=(S.progress[k]||{})[i]||{};
+  const n=[r.t,r.p,r.f].filter(Boolean).length;
+  return n===3?"done":n>0?"progress":"none";
+}
+
+/* ── RENDER ALL ─────────────────────────────────────────────── */
+function renderAll(){ renderStats(); renderOverall(); renderGoals(); }
+
+/* ── STATS ──────────────────────────────────────────────────── */
+function renderStats(){
+  const pct=totPct();
+  const allC=Object.values(SUBJ).reduce((s,v)=>s+v.ch.length,0);
+  let doneC=0;
+  Object.keys(SUBJ).forEach(k=>SUBJ[k].ch.forEach((_,i)=>{ if(cStatus(k,i)==="done")doneC++; }));
+  setText("s-ov",pct+"%");
+  setText("s-ch",doneC+"/"+allC);
+  setText("s-gl",S.goals.filter(g=>g.done).length+"/"+S.goals.length);
+  const el=document.getElementById("s-st");
+  if(el) el.innerHTML=`<span class="streak-badge">🔥 ${S.streak} day${S.streak!==1?"s":""}</span>`;
+}
+
+/* ── OVERALL ────────────────────────────────────────────────── */
+function renderOverall(){
+  const pct=totPct();
+  setText("ov-badge",pct+"%"); setW("ov-fill",pct);
+  Object.keys(SUBJ).forEach(k=>{ const p=sPct(k); setText("mp-"+k,p+"%"); setW("mf-"+k,p); });
+}
+
+/* ── GOALS ──────────────────────────────────────────────────── */
+function renderGoals(){
+  const list=document.getElementById("goals-list");
+  if(!list) return;
+  list.innerHTML="";
+  S.goals.forEach(g=>{
+    const d=document.createElement("div");
+    d.className="goal-item"+(g.done?" done":"");
+    d.innerHTML=`<div class="chk${g.done?" on":""}" onclick="togGoal('${g.id}')"></div><span class="gtxt" onclick="togGoal('${g.id}')">${esc(g.text)}</span><span class="gdel" onclick="delGoal('${g.id}')">✕</span>`;
+    list.appendChild(d);
+  });
+  renderStats();
+}
+function addGoal(){
+  const inp=document.getElementById("g-inp");
+  const t=inp.value.trim(); if(!t) return;
+  S.goals.push({id:Date.now().toString(),text:t,done:false});
+  inp.value=""; scheduleSave(); renderGoals();
+}
+function togGoal(id){
+  const g=S.goals.find(x=>x.id===id);
+  if(g){g.done=!g.done; scheduleSave(); renderGoals();}
+}
+function delGoal(id){
+  S.goals=S.goals.filter(x=>x.id!==id); scheduleSave(); renderGoals();
+}
+function clearGoals(){ S.goals=[]; scheduleSave(); renderGoals(); }
+
+/* ── SUBJECT CARDS ──────────────────────────────────────────── */
+function buildSubjCards(){
+  const w=document.getElementById("subj-wrap"); w.innerHTML="";
+  let delay=0;
+  Object.entries(SUBJ).forEach(([k,s])=>{ w.appendChild(makeCard(k,s,delay)); delay+=80; });
+}
+function makeCard(k,s,delay){
+  const pct=sPct(k);
+  const c=document.createElement("div");
+  c.className="subj-card"; c.id="c-"+k; c.style.animationDelay=delay+"ms";
+  c.innerHTML=`
+    <div class="subj-hdr" onclick="togCard('${k}')">
+      <div class="subj-icon" style="color:${s.color}">${s.icon}</div>
+      <div class="subj-info"><div class="subj-name">${s.name}</div><div class="subj-meta">${s.ch.length} chapters</div></div>
+      <div class="subj-right">
+        <span class="subj-pct" style="color:${s.color}" id="sp-${k}">${pct}%</span>
+        <div class="chev"><svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+    </div>
+    <div class="subj-pbar"><div class="subj-pfill" id="sb-${k}" style="width:${pct}%;background:${s.color}"></div></div>
+    <div class="chap-panel"><div class="chap-inner" id="ci-${k}"></div></div>`;
+  return c;
+}
+function togCard(k){
+  const c=document.getElementById("c-"+k);
+  const wasOpen=c.classList.contains("open");
+  document.querySelectorAll(".subj-card.open").forEach(x=>x.classList.remove("open"));
+  if(!wasOpen){ c.classList.add("open"); buildTable(k); }
+}
+
+/* ── CHAPTER TABLE ──────────────────────────────────────────── */
+function buildTable(k){
+  const ci=document.getElementById("ci-"+k); if(!ci) return;
+  ci.innerHTML="";
+  const h=document.createElement("div"); h.className="tbl-hdr";
+  h.innerHTML="<span>Chapter</span><span>Theory</span><span>Practice</span><span>Final Rev.</span><span>Notes</span>";
+  ci.appendChild(h);
+  SUBJ[k].ch.forEach((name,i)=>ci.appendChild(makeRow(k,i,name)));
+  applyFilter();
+}
+function makeRow(k,i,name){
+  const p=(S.progress[k]||{})[i]||{};
+  const row=document.createElement("div");
+  row.className="chap-row";
+  row.dataset.k=k; row.dataset.i=i; row.dataset.n=name.toLowerCase();
+  row.innerHTML=`
+    <div class="chap-name">${esc(name)}</div>
+    <div class="chk-cell"><div class="chk${p.t?" on":""}" data-k="${k}" data-i="${i}" data-f="t"></div></div>
+    <div class="chk-cell"><div class="chk${p.p?" on":""}" data-k="${k}" data-i="${i}" data-f="p"></div></div>
+    <div class="chk-cell"><div class="chk${p.f?" on":""}" data-k="${k}" data-i="${i}" data-f="f"></div></div>
+    <div class="mob-chks">
+      <div class="mob-ci"><div class="chk${p.t?" on":""}" data-k="${k}" data-i="${i}" data-f="t"></div><span class="mob-ci-lbl">Theory</span></div>
+      <div class="mob-ci"><div class="chk${p.p?" on":""}" data-k="${k}" data-i="${i}" data-f="p"></div><span class="mob-ci-lbl">Practice</span></div>
+      <div class="mob-ci"><div class="chk${p.f?" on":""}" data-k="${k}" data-i="${i}" data-f="f"></div><span class="mob-ci-lbl">Final</span></div>
+    </div>
+    <textarea class="note-ta" placeholder="Notes…" rows="1" data-k="${k}" data-i="${i}">${esc(p.n||"")}</textarea>`;
+  // checkbox events
+  row.querySelectorAll(".chk[data-f]").forEach(cb=>{
+    cb.addEventListener("click",()=>{
+      const k2=cb.dataset.k,idx=+cb.dataset.i,f=cb.dataset.f;
+      if(!S.progress[k2]) S.progress[k2]={};
+      if(!S.progress[k2][idx]) S.progress[k2][idx]={};
+      S.progress[k2][idx][f]=!S.progress[k2][idx][f];
+      // sync both desktop + mobile checkboxes for same field
+      row.querySelectorAll(`.chk[data-k="${k2}"][data-i="${idx}"][data-f="${f}"]`).forEach(c=>{
+        c.classList.toggle("on", S.progress[k2][idx][f]);
+      });
+      updSubj(k2); scheduleSave();
+    });
+  });
+  // note
+  const ta=row.querySelector("textarea");
+  let nt;
+  ta.addEventListener("input",()=>{
+    ta.style.height="auto"; ta.style.height=ta.scrollHeight+"px";
+    clearTimeout(nt);
+    nt=setTimeout(()=>{
+      const k2=ta.dataset.k,idx=+ta.dataset.i;
+      if(!S.progress[k2]) S.progress[k2]={};
+      if(!S.progress[k2][idx]) S.progress[k2][idx]={};
+      S.progress[k2][idx].n=ta.value;
+      scheduleSave();
+    },500);
+  });
+  return row;
+}
+function updSubj(k){
+  const p=sPct(k);
+  setText("sp-"+k,p+"%"); setW("sb-"+k,p);
+  renderOverall(); renderStats();
+}
+function refreshCards(){
+  Object.keys(SUBJ).forEach(k=>{
+    updSubj(k);
+    const c=document.getElementById("c-"+k);
+    if(c&&c.classList.contains("open")) buildTable(k);
+  });
+}
+
+/* ── SEARCH + FILTER ────────────────────────────────────────── */
+function onSearch(v){
+  searchQ=v.toLowerCase().trim();
+  if(searchQ){
+    Object.keys(SUBJ).forEach(k=>{
+      const c=document.getElementById("c-"+k);
+      if(!c.classList.contains("open")&&SUBJ[k].ch.some(ch=>ch.toLowerCase().includes(searchQ))){
+        c.classList.add("open"); buildTable(k);
+      }
+    });
+  }
+  applyFilter();
+}
+function setFilter(btn){
+  document.querySelectorAll(".fbtn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active"); filter=btn.dataset.f;
+  if(filter!=="all"){
+    Object.keys(SUBJ).forEach(k=>{
+      const c=document.getElementById("c-"+k);
+      if(!c.classList.contains("open")){ c.classList.add("open"); buildTable(k); }
+    });
+  }
+  applyFilter();
+}
+function applyFilter(){
+  document.querySelectorAll(".chap-row").forEach(row=>{
+    const k=row.dataset.k,i=+row.dataset.i,n=row.dataset.n||"";
+    const st=cStatus(k,i);
+    let show=true;
+    if(searchQ&&!n.includes(searchQ)) show=false;
+    if(filter==="done"&&st!=="done") show=false;
+    if(filter==="progress"&&st!=="progress") show=false;
+    if(filter==="none"&&st!=="none") show=false;
+    row.classList.toggle("hidden",!show);
+  });
+}
+
+/* ── EXPORT / IMPORT / RESET ────────────────────────────────── */
+function exportData(){
+  const b=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(b);
+  a.download="bitsat-backup-"+new Date().toISOString().slice(0,10)+".json";
+  a.click(); showToast("✓ Exported");
+}
+function importData(e){
+  const file=e.target.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=async ev=>{
+    try{
+      Object.assign(S,JSON.parse(ev.target.result));
+      saveLocal(); await pushFB();
+      renderAll(); buildSubjCards();
+      showToast("✓ Imported & synced");
+    }catch{ alert("Invalid backup file."); }
+    e.target.value="";
+  };
+  r.readAsText(file);
+}
+function confirmReset(){
+  const bg=document.createElement("div"); bg.className="modal-bg";
+  bg.innerHTML=`<div class="modal-box"><div class="modal-ttl">Reset All Progress</div><div class="modal-msg">This permanently deletes all progress, notes and goals on every device. Cannot be undone.</div><div class="modal-acts"><button class="btn btn-ghost" onclick="this.closest('.modal-bg').remove()">Cancel</button><button class="btn btn-danger" id="do-reset">Reset Everything</button></div></div>`;
+  document.body.appendChild(bg);
+  bg.addEventListener("click",e=>{ if(e.target===bg) bg.remove(); });
+  document.getElementById("do-reset").addEventListener("click",async()=>{
+    S.progress={}; S.goals=[]; S.streak=0; S.lastActive=null;
+    saveLocal(); await pushFB();
+    renderAll(); buildSubjCards();
+    showToast("✓ Reset complete"); bg.remove();
+  });
+}
+
+/* ── UTILS ──────────────────────────────────────────────────── */
+function setText(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
+function setW(id,p){const e=document.getElementById(id);if(e)e.style.width=p+"%";}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+</script>
+</body>
+</html>
